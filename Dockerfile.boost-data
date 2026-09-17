@@ -1,0 +1,7 @@
+FROM ubuntu:24.04
+
+COPY boost/boost/boostd-data /usr/local/bin/boostd-data
+
+RUN chmod +x /usr/local/bin/boostd-data
+
+ENTRYPOINT ["boostd-data"]

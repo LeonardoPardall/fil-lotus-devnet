@@ -1,2 +1,47 @@
-.idea
+# Local editor and command output
+.idea/
 nohup.out
+
+# Cloned upstream repositories and vendored source trees
+/lotus/
+/boost/
+/third-party/
+
+# Generated files and local build state
+/docker-compose.generated.yml
+/go-cache/
+/out/
+/build/
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Large blockchain and benchmark data
+/benchmark-files/
+/benchmark-files-bk/
+**/block_*
+
+# Go tooling and test artifacts
+coverage.out
+coverage.html
+*.test
+*.prof
+
+# Runtime data, logs, and temporary files
+*.log
+*.tmp
+*.swp
+tmp/
+temp/
+
+# Local credentials and environment overrides
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.secret

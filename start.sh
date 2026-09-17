@@ -1,20 +1,13 @@
-#!/bin/bash
-
-set -e
-
-# Build Lotus image
-docker build -t lotus-node:latest -f lotus.dockerfile .
-
+#! /bin/bash
 
 # Number of nodes
 if [[ $1 =~ ^[0-9]+$ ]]; then
     SCALE="$1"
 else
-    SCALE=3 
+    SCALE=3
 fi
 
-echo "Scale is  $SCALE" 
-
+echo "Scale is $SCALE"
 
 # Network topology
 if [[ $2 =~ "ring" ]] || [[ $2 =~ "full" ]] || [[ $2 =~ "tree" ]]; then
@@ -23,11 +16,11 @@ else
     TOPOLOGY="star"
 fi
 
-# Generate compose file
-./generate_compose.sh "$SCALE"
+./generate_compose.sh "$SCALE"  
+
 
 # Start network
-docker compose -f docker-compose.generated.yml up -d 
+docker compose -f docker-compose.generated.yml up -d
 
 echo "Waiting for Redis..."
 
@@ -40,8 +33,8 @@ done
 export LOTUS_REDIS_ADDR=localhost:6379
 echo "$LOTUS_REDIS_ADDR"
 # Configure Redis
-docker exec lotus-redis redis-cli SET nettopology "$TOPOLOGY"
-docker exec lotus-redis redis-cli SET fil-nodes "$((SCALE-1))"
+./redis-cli/rediscli w nettopology "$TOPOLOGY"
+./redis-cli/rediscli w fil-nodes "$(($SCALE-1))"
 
 if [[ "$3" == "true" ]]; then
     ./redis-cli/rediscli w SingleBlock true
@@ -51,7 +44,7 @@ echo "Waiting for Lotus nodes..."
 
 for i in $(seq 0 $(($SCALE-1)))
 do
-    while ! docker exec lotus-redis redis-cli EXISTS lotus-node-${i}-started | grep -q '^1$'
+    while ! ./redis-cli/rediscli r lotus-node-${i}-started >/dev/null
     do
         sleep 1
     done

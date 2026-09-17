@@ -4,4 +4,4 @@ if ! [[ "$1" =~ ^[0-9]+$ ]]; then
  exit 1
 fi
 
-kubectl exec --stdin --tty "lotus-node-$1" -- /bin/bash
+docker exec -it lotus-node-$1 /bin/bash

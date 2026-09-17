@@ -1,54 +1,44 @@
 # Create builder container
-FROM golang:1.17 as builder
-
+FROM golang:1.25.7 AS builder
 # set BRANCH_FIL or COMMIT_HASH_FIL
-ARG BRANCH_FIL=fil-benchmark
-ARG COMMIT_HASH_FIL=""
-ARG REPO_FIL=https://github.com/fadnincx/lotus
+
 ARG NODEPATH=/lotus
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Clone Lotus
 
-# Err if neither branch nor hash defined
-RUN if [ -z "${BRANCH_FIL}" ] && [ -z "${COMMIT_HASH_FIL}" ]; then \
-    echo 'Error: Both BRANCH_FIL and COMMIT_HASH_FIL are empty'; \
-    exit 1; \
-  fi
-
-# Err if both branch and hash defined
-RUN if [ ! -z "${BRANCH_FIL}" ] && [ ! -z "${COMMIT_HASH_FIL}" ]; then \
-    echo 'Error: Both BRANCH_FIL and COMMIT_HASH_FIL are set'; \
-    exit 1; \
-  fi
 
 
-# clone
+WORKDIR /
+COPY lotus ${NODEPATH}
 WORKDIR ${NODEPATH}
-RUN git clone ${REPO_FIL} ${NODEPATH}
 
-# checkout branch
-RUN if [ ! -z "${BRANCH_FIL}" ]; then \
-    echo "Checking out to Lotus branch: ${BRANCH_FIL}"; \
-    git checkout ${BRANCH_FIL}; \
-    echo "Git tag: $(git log --format="%H" -n 1)"; \
-  fi
 
-# checkout hash
-RUN if [ ! -z "${COMMIT_HASH_FIL}" ]; then \
-		echo "Checking out to Lotus commit: ${COMMIT_HASH_FIL}"; \
-		git checkout ${COMMIT_HASH_FIL}; \
-	fi
 
 # Install Lotus deps
 RUN apt-get update && \
-    apt-get install -yy apt-utils && \
-    apt-get install -yy gcc git bzr jq pkg-config mesa-opencl-icd ocl-icd-opencl-dev hwloc libhwloc-dev
+    apt-get install -yy \
+        apt-utils \
+        gcc \
+        git \
+        bzr \
+        jq \
+        pkg-config \
+        mesa-opencl-icd \
+        ocl-icd-opencl-dev \
+        hwloc \
+        libhwloc-dev    
+RUN make 2k
+RUN /lotus/lotus config default | grep ListenAddress
 
-RUN make clean fil
+RUN go build -o /lotus/lotus-bench ./cmd/lotus-bench
+RUN go build -o /lotus/lotus-gateway ./cmd/lotus-gateway
+RUN go build -o /lotus/lotus-wallet ./cmd/lotus-wallet
+
+
 
 # Create final container
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 ARG LOTUS_API_PORT=1234
 
@@ -66,10 +56,12 @@ COPY --from=builder /lotus/lotus-gateway /usr/local/bin/
 COPY --from=builder /lotus/lotus-shed /usr/local/bin/
 COPY --from=builder /lotus/lotus-wallet /usr/local/bin/
 COPY --from=builder /lotus/lotus-worker /usr/local/bin/
+COPY --from=builder /lotus/lotus-bench /usr/local/bin/
 
-# Fetch 2048 byte params
+
+
 RUN lotus-shed fetch-params --proving-params 0
-RUN lotus-shed fetch-params --proving-params 2048
+RUN lotus-shed fetch-params --proving-params 8MiB
 
 
 # Copy RCE and rediscli

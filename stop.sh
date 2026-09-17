@@ -1,25 +1,24 @@
 #!/bin/sh
 ###################################################################################
 #                                                                                 #
-#  Lotus Testnet Stop Script - Marcel Wuersten - 2022 - University of Bern      #
+#  Lotus Devnet Stop Script (Docker Compose)                                      #
 #                                                                                 #
 ###################################################################################
 
-# Scale down the lotus nods
-kubectl scale --replicas=0 -f ./deploy/lotus.yaml
+set -e
 
-# Delete all deployments
-echo "Delete all deployments"
-k3s kubectl delete -f ./deploy/lotus.yaml --grace-period 0
-k3s kubectl delete -f ./deploy/volume.yaml --grace-period 0
-k3s kubectl delete -f ./deploy/redis.yaml --grace-period 0
+echo "Stopping containers..."
+docker compose -f docker-compose.generated.yml down
 
-# Delete all pods still there
-echo "delete pods"
-kubectl delete pod --all --grace-period 0
+echo "Removing generated compose file..."
+rm -f docker-compose.generated.yml
 
-# Delete relevant files in persitent volume
-echo "delete pvc data"
-find /var/lib/rancher/k3s/storage/ -name 'fil-testnet.car' -exec rm -rf {} \;
-find /var/lib/rancher/k3s/storage/ -name 'lotus-node-*' -exec rm -rf {} \;
 
+## remove volume 
+echo "Removing volumes..."
+docker volume rm fil-lotus-devnet_lotus-config
+
+
+
+
+echo "Done."
